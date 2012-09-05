@@ -32,6 +32,15 @@ function computeIteration(iter) {
   return Math.round(Math.exp(Math.log(10) * (1 + iter / 4)));
 }
 
+// Add run function to satisfy v8 shell, use dateNow when running spidermonkey,
+// because it has a precision below the milli-second level.
+function run(name) {
+  var start = 'dateNow' in this ? this["dateNow"]() : new Date();
+  load(name);
+  var end = 'dateNow' in this ? this["dateNow"]() : new Date();
+  return end - start;
+}
+
 var time = 0;
 var times = [];
 times.length = tests.length;

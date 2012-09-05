@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-var output = JSON.parse(read(outputFile));
+// This line is added by the sunspider script.
+//var output = JSON.parse(read(outputFile));
 var count = output.length;
 
 function computeIteration(iter) {
@@ -33,13 +34,13 @@ function computeIteration(iter) {
 function SampleStats(nbIter, l) {
   this.nbIter = nbIter;
   this.samples = l
-    .filter(function (a) a.nbIter == nbIter)
-    .map(function (e) e.time);
+    .filter(function (a) { return a.nbIter == nbIter })
+    .map(function (e) { return e.time });
   // print(this.samples);
   this.num = this.samples.length;
   // print(this.num);
   var num = this.num;
-  this.total = this.samples.reduce(function (a, b) a + b);
+  this.total = this.samples.reduce(function (a, b) { return a + b }, 0);
   // print(this.total);
   this.mean = this.total / num;
   // print(this.mean);
@@ -47,7 +48,7 @@ function SampleStats(nbIter, l) {
   this.stddev = Math.sqrt(
     this.samples.reduce(function (a, b) {
       return a + ((b - mean) * (b - mean)) / num;
-  }));
+  }, 0));
   this.stderr = this.stddev / Math.sqrt(num);
 }
 
