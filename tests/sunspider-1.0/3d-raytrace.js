@@ -387,7 +387,7 @@ function raytraceScene()
     _scene.ambient = createVector(0.1, 0.1, 0.1);
     //  _scene.background = createVector(0.7, 0.7, 1.0);
     
-    var size = 3 * Math.floor(Math.sqrt(iterations));
+    var size = Math.floor(Math.sqrt(iterations));
     var pixels = new Array();
     for (var y = 0; y < size; y++) {
         pixels[y] = new Array();
@@ -405,7 +405,7 @@ function raytraceScene()
 function arrayToCanvasCommands(pixels)
 {
     var s = '<canvas id="renderCanvas" width="30px" height="30px"></canvas><scr' + 'ipt>\nvar pixels = [';
-    var size = 3 * Math.floor(Math.sqrt(iterations));
+    var size = Math.floor(Math.sqrt(iterations));
     for (var y = 0; y < size; y++) {
         s += "[";
         for (var x = 0; x < size; x++) {
@@ -416,7 +416,7 @@ function arrayToCanvasCommands(pixels)
     s += '];\n    var canvas = document.getElementById("renderCanvas").getContext("2d");\n\
 \n\
 \n\
-    var size = 3 * Math.floor(Math.sqrt(iterations));\n\
+    var size = Math.floor(Math.sqrt(iterations));\n\
     canvas.fillStyle = "red";\n\
     canvas.fillRect(0, 0, size, size);\n\
     canvas.scale(1, -1);\n\
