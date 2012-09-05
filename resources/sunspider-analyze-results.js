@@ -23,44 +23,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+var output = JSON.parse(read(outputFile));
 var count = output.length;
-
-var itemTotals = {};
-itemTotals.length = count;
-
-var total = 0;
-var categoryTotals = {};
-var testTotalsByCategory = {};
-
-var mean = 0;
-var categoryMeans = {};
-var testMeansByCategory = {};
-
-var stdDev = 0;
-var categoryStdDevs = {};
-var testStdDevsByCategory = {};
-
-var stdErr = 0;
-var categoryStdErrs = {};
-var testStdErrsByCategory = {};
 
 function computeIteration(iter) {
   return Math.round(Math.exp(Math.log(10) * (1 + iter / 4)));
 }
 
-function SampleStats(l) {
-  this.samples = l;
+function SampleStats(nbIter, l) {
+  this.nbIter = nbIter;
+  this.samples = l
+    .filter(function (a) a.nbIter == nbIter)
+    .map(function (e) e.time);
   // print(this.samples);
-  this.num = l.length;
+  this.num = this.samples.length;
   // print(this.num);
   var num = this.num;
-  this.total = l.reduce(function (a, b) a + b);
+  this.total = this.samples.reduce(function (a, b) a + b);
   // print(this.total);
   this.mean = this.total / num;
   // print(this.mean);
   var mean = this.mean;
   this.stddev = Math.sqrt(
-    l.reduce(function (a, b) {
+    this.samples.reduce(function (a, b) {
       return a + ((b - mean) * (b - mean)) / num;
   }));
   this.stderr = this.stddev / Math.sqrt(num);
@@ -73,141 +58,29 @@ function foldResults(result) {
   for (var i = 0; i < count; ++i) {
     for (var test in result[i]) {
       if (!(test in obj)) {
-        obj[test] = new Array();
+        obj[test] = {
+          stats: new Array(),
+          samples: new Array(),
+          nbIters: new Array()
+        }
       }
-      var samples = result[i][test];
-      for (var j = 0; j < samples.length; ++j) {
-        if (!obj[test][j])
-          obj[test][j] = new Array();
-        obj[test][j].push(samples[j]);
-      }
+      obj[test].samples = obj[test].samples.concat(result[i][test]);
     }
   }
 
   // Convert the sample list to a sampleStats object.
   for (var test in obj) {
-    var samples = obj[test];
-    for (var s = 0; s < samples.length; ++s)
-      obj[test][s] = new SampleStats(obj[test][s]);
+    var t = obj[test];
+    for (var s = 0; s < t.samples.length; ++s) {
+      var nbIter = t.samples[s].nbIter;
+      if (t.stats[nbIter])
+        continue;
+      t.nbIters.push(nbIter);
+      t.stats[nbIter] = new SampleStats(nbIter, t.samples);
+    }
+    t.nbIters = t.nbIters.sort(function (a, b) a > b);
   }
   return obj;
-}
-
-function initialize()
-{
-    itemTotals = {total: []};
-
-    for (var i = 0; i < categories.length; i++) {
-        var category = categories[i];
-        itemTotals[category] = [];
-        categoryTotals[category] = 0;
-        testTotalsByCategory[category] = {};
-        categoryMeans[category] = 0;
-        testMeansByCategory[category] = {};
-        categoryStdDevs[category] = 0;
-        testStdDevsByCategory[category] = {};
-        categoryStdErrs[category] = 0;
-        testStdErrsByCategory[category] = {};
-    }
-
-    for (var i = 0; i < tests.length; i++) {
-        var test = tests[i];
-        itemTotals[test] = [];
-        var category = test.replace(/-.*/, "");
-        testTotalsByCategory[category][test] = 0;
-        testMeansByCategory[category][test] = 0;
-        testStdDevsByCategory[category][test] = 0;
-        testStdErrsByCategory[category][test] = 0;
-    }
-
-    for (var i = 0; i < count; i++) {
-        itemTotals["total"][i] = 0;
-        for (var category in categoryTotals) {
-            itemTotals[category][i] = 0;
-            for (var test in testTotalsByCategory[category]) {
-                itemTotals[test][i] = 0;
-            }
-        }
-    }
-}
-
-function computeItemTotals()
-{
-    for (var i = 0; i < output.length; i++) {
-        var result = output[i];
-        for (var test in result) {
-            var time = result[test];
-            var category = test.replace(/-.*/, "");
-            itemTotals["total"][i] += time;
-            itemTotals[category][i] += time;
-            itemTotals[test][i] += time;
-        }
-    }
-}
-
-function computeTotals()
-{
-    for (var i = 0; i < output.length; i++) {
-        var result = output[i];
-        for (var test in result) {
-            var time = result[test];
-            var category = test.replace(/-.*/, "");
-            total += time;
-            categoryTotals[category] += time;
-            testTotalsByCategory[category][test] += time;
-        }
-    }
-}
-
-function computeMeans()
-{
-    mean = total / count;
-    for (var category in categoryTotals) {
-        categoryMeans[category] = categoryTotals[category] / count;
-        for (var test in testTotalsByCategory[category]) {
-            testMeansByCategory[category][test] = testTotalsByCategory[category][test] / count;
-        }
-    }
-}
-
-function standardDeviation(mean, items)
-{
-    var deltaSquaredSum = 0;
-    for (var i = 0; i < items.length; i++) {
-        var delta = items[i] - mean;
-        deltaSquaredSum += delta * delta;
-    }
-    variance = deltaSquaredSum / (items.length - 1);
-    return Math.sqrt(variance);
-}
-
-function computeStdDevs()
-{
-    stdDev = standardDeviation(mean, itemTotals["total"]);
-    for (var category in categoryStdDevs) {
-        categoryStdDevs[category] = standardDeviation(categoryMeans[category], itemTotals[category]);
-    }
-    for (var category in categoryStdDevs) {
-        for (var test in testStdDevsByCategory[category]) {
-            testStdDevsByCategory[category][test] = standardDeviation(testMeansByCategory[category][test], itemTotals[test]);
-        }
-    }
-}
-
-function computeStdErrors()
-{
-    var sqrtCount = Math.sqrt(count);
-
-    stdErr = stdDev / sqrtCount;
-    for (var category in categoryStdErrs) {
-        categoryStdErrs[category] = categoryStdDevs[category] / sqrtCount;
-    }
-    for (var category in categoryStdDevs) {
-        for (var test in testStdErrsByCategory[category]) {
-            testStdErrsByCategory[category][test] = testStdDevsByCategory[category][test] / sqrtCount;
-        }
-    }
-
 }
 
 var tDistribution = [NaN, NaN, 12.71, 4.30, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23, 2.20, 2.18, 2.16, 2.14, 2.13, 2.12, 2.11, 2.10, 2.09, 2.09, 2.08, 2.07, 2.07, 2.06, 2.06, 2.06, 2.05, 2.05, 2.05, 2.04, 2.04, 2.04, 2.03, 2.03, 2.03, 2.03, 2.03, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.02, 2.01, 2.01, 2.01, 2.01, 2.01, 2.01, 2.01, 2.01, 2.01, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 2.00, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.98, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.97, 1.96];
@@ -314,12 +187,13 @@ function printResult(results) {
   print("\n");
   print("============================================");
   for (var test in folded) {
+    var t = folded[test];
     var str = "  " + test + ":\n";
     var lo = 0, hi = 0;
     var loMean = 0, hiMean = 0;
-    for (var i = 0; i < folded[test].length; i++) {
-      hi = computeIteration(i);
-      hiMean = folded[test][i].mean;
+    for (var i = 0; i < t.nbIters.length; ++i) {
+      hi = t.nbIters[i];
+      hiMean = t.stats[hi].mean;
       uspi = Math.round(100 * 1000 * (hiMean - loMean) / (hi - lo)) / 100;
       str += "    " + lo + " - " + hi + ": " + uspi + " us/iter\n";
       lo = hi;

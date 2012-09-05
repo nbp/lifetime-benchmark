@@ -23,68 +23,66 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-var results = new Array();
 var iterations = 1;
+
+(function(){
 
 function computeIteration(iter) {
   return Math.round(Math.exp(Math.log(10) * (1 + iter / 4)));
 }
-
-(function(){
 
 var time = 0;
 var times = [];
 times.length = tests.length;
 var maxIter = 14;
 
+var output = {};
 for (var j = 0; j < tests.length; j++) {
-  times[j] = new Array();
-  for (var iter = 0; iter <= maxIter; iter++) {
-    iterations = computeIteration(iter);
+  var test = tests[j];
+  output[test] = new Array();
 
-    var testBase = suitePath + "/" + tests[j];
-    var testName = testBase + ".js";
-    var testData = testBase + "-data.js";
+  var testBase = suitePath + "/" + tests[j];
+  var testName = testBase + ".js";
+  var testData = testBase + "-data.js";
 
-    if (testName.indexOf('parse-only') >= 0) {
-        times[j] = checkSyntax(testName);
-    } else {
-        // Tests may or may not have associated -data files whose loading
-        // should not be timed.
-        try {
-            load(testData);
-            // If a file does have test data, then we can't use the
-            // higher-precision `run' timer, because `run' uses a fresh
-            // global environment, so we fall back to `load'.
-            var startTime = new Date;
-            load(testName);
-            times[j][iter] = new Date() - startTime;
-        } catch (e) {
-            // No test data, just use `run'.
-            times[j][iter] = run(testName);
-        }
+  if (testName.indexOf('parse-only') >= 0) {
+    output[test].push({
+      nbIter: 1,
+      time: checkSyntax(testName)
+    });
+  } else {
+    for (var iter = 0; iter <= maxIter; iter++) {
+      iterations = computeIteration(iter);
+      for (var  repeat = 0; repeat < 1 + (maxIter - iter); ++repeat) {
+      // Tests may or may not have associated -data files whose loading
+      // should not be timed.
+      try {
+        load(testData);
+        // If a file does have test data, then we can't use the
+        // higher-precision `run' timer, because `run' uses a fresh
+        // global environment, so we fall back to `load'.
+        var startTime = new Date;
+        load(testName);
+        var endTime = new Date;
+        output[test].push({
+          nbIter: iterations,
+          time: endTime - startTime
+        });
+      } catch (e) {
+        // No test data, just use `run'.
+        var deltaTime = run(testName);
+        output[test].push({
+          nbIter: iterations,
+          time: deltaTime
+        });
+      }
+    }
     }
     gc();
   }
 }
 
-function recordResults(tests, times)
-{
-    var output = "{\n";
-
-    for (j = 0; j < tests.length; j++) {
-        output += '    "' + tests[j] + '": [';
-        for (iter = 0; iter < maxIter; iter++)
-          output += (iter ? ', ': '') + times[j][iter];
-        output += '],\n';
-    }
-    output = output.substring(0, output.length - 2) + "\n";
-
-    output += "}";
-    print(output);
-}
-
-recordResults(tests, times);
+print(JSON.stringify(output));
 
 })();
 
