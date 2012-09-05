@@ -78,7 +78,7 @@ function foldResults(result) {
       t.nbIters.push(nbIter);
       t.stats[nbIter] = new SampleStats(nbIter, t.samples);
     }
-    t.nbIters = t.nbIters.sort(function (a, b) a > b);
+    t.nbIters = t.nbIters.sort(function (a, b) { return a - b; });
   }
   return obj;
 }
