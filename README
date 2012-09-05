@@ -1,0 +1,30 @@
+This benchmark suite is an attempt to highlight start-up performances of
+Javascript engines. It is mostly inspired from SunSpider benchmark.
+
+This benchmark computes the average number of time spent in one iteration for
+each slices of iterations.  The average time between slices should be comparable
+with other slices knowing that the time should scale linearly with the number of iterations.
+
+Currently, slices are made smaller for the beginning and larger for the ending, to
+emphasize the start-up time of the Javascript engines.
+
+
+How to use it:
+
+  perl ./sunspider --suite=sunspider-1.0 --shell=/path/to/the/shell
+
+This has been tested with IonMonkey and V8 shells.
+To use with v8, append '--args=--expose-gc' to the previous command line.
+
+
+CLI Output:
+
+  benchmark:
+    slice 1: XX.XX µs/iter
+    slice 2: YY.YY µs/iter
+    slice 3: ZZ.ZZ µs/iter
+
+This represent the output of one benchmark, which result is divided into 3
+slices. Each slice is annotated by the average iteration time express in
+micro-seconds per iterations.
+
