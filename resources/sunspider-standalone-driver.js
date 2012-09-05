@@ -23,7 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-var iterations = 1;
+// This global is visible inside benchmarks.  Use $ prefix to avoid confusion.
+var $iterations = 1;
 
 (function(){
 
@@ -52,10 +53,11 @@ for (var j = 0; j < tests.length; j++) {
     });
   } else {
     for (var iter = 0; iter <= maxIter; iter++) {
-      iterations = computeIteration(iter);
+      $iterations = computeIteration(iter);
       for (var  repeat = 0; repeat < 1 + (maxIter - iter); ++repeat) {
       // Tests may or may not have associated -data files whose loading
       // should not be timed.
+      // print(test + ", iter = " + iter + ", r" + repeat);
       try {
         load(testData);
         // If a file does have test data, then we can't use the
@@ -65,14 +67,14 @@ for (var j = 0; j < tests.length; j++) {
         load(testName);
         var endTime = new Date;
         output[test].push({
-          nbIter: iterations,
+          nbIter: $iterations,
           time: endTime - startTime
         });
       } catch (e) {
         // No test data, just use `run'.
         var deltaTime = run(testName);
         output[test].push({
-          nbIter: iterations,
+          nbIter: $iterations,
           time: deltaTime
         });
       }

@@ -24,8 +24,8 @@
  */
 
 var loops = 15
-var nx = 6 * Math.floor(Math.sqrt(iterations));
-var nz = 6 * Math.ceil(Math.sqrt(iterations));
+var nx = 6 * Math.floor(Math.sqrt($iterations));
+var nz = 6 * Math.ceil(Math.sqrt($iterations));
 
 function morph(a, f) {
     var PI2nx = Math.PI * 8/nx
